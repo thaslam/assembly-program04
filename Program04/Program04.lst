@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.11.25508.2	    11/04/17 08:59:30
+Microsoft (R) Macro Assembler Version 14.11.25508.2	    11/04/17 13:43:58
 $COMPOSITE NUMBERS     (haslamth.asm			     Page 1 - 1
 
 
@@ -30,6 +30,8 @@ $COMPOSITE NUMBERS     (haslamth.asm			     Page 1 - 1
 
 				; constant definitions
  = 10				   numbers_per_line     EQU         <10>
+ = 400				   max_count            EQU         <400>
+ = 1				   min_count            EQU         <1>
  00000000			.data
  00000000 43 6F 6D 70 6F	    program_title       BYTE        "Composite Numbers     Programmed by Tom Haslam", 10, 0             ; store program title to output
 	   73 69 74 65 20
@@ -91,155 +93,170 @@ $COMPOSITE NUMBERS     (haslamth.asm			     Page 1 - 1
  00000110 59 65 73 00		    found_text          BYTE        "Yes", 0            
  00000114 20 20 20 20 20	    spaces              BYTE        "     ", 0                                                          ; store padding betweeen numbers
 	   00
- 0000011A 00000000		    input_count         DWORD       ?                                                                   ; store composite # count
- 0000011E 00000000		    count               DWORD       0
- 00000122 00000000		    line_count          DWORD       0                               
+ 0000011A 00000000		    count               DWORD       0
+ 0000011E 00000000		    line_count          DWORD       0                               
  00000000			.code
  00000000			main PROC
 
 				; show program title in intro instructions
- 00000000  E8 00000076		call    introduction
+ 00000000  E8 000000AE		call    introduction
 
 				; collect input from the user
- 00000005  E8 000000AC		call    getUserData
- 0000000A  A3 0000011A R	    mov     input_count, eax
- 0000000F  B9 00000000		    mov     ecx, 0
- 00000014			NextNumber:
- 00000014  41			    inc     ecx
- 00000015  A1 0000011E R	    mov     eax, count
- 0000001A  3B 05 0000011A R	    cmp     eax, input_count
- 00000020  7D 54		    jge     ExitProgram
+ 00000005  E8 000000E4		call    getUserData
 
- 00000022  51			    push    ecx
- 00000023  51			    push    ecx
- 00000024  E8 000000D9		    call    isComposite
- 00000029  59			    pop     ecx                                 ; here we want to restore the ecx counter after proc returns
- 0000002A  3C 01		    cmp     al, 1
- 0000002C  74 02		    je      CompositeFound                      ; write composite output to screen
- 0000002E  EB E4		    jmp     NextNumber                          ; loop next number
-
-				; write found composite number to screen update global counters
- 00000030			CompositeFound:
- 00000030  FF 05 0000011E R	    inc     count
- 00000036  FF 05 00000122 R	    inc     line_count
- 0000003C  8B C1		    mov     eax, ecx
- 0000003E  E8 00000000 E	    call    WriteDec
- 00000043  BA 00000114 R	    mov     edx, OFFSET spaces
- 00000048  E8 00000000 E	    call    WriteString
-
-				; check how many numbers we have written per line, if 10 start new line
- 0000004D  BA 00000000		    mov     edx, 0
- 00000052  A1 00000122 R	    mov     eax, line_count
- 00000057  BB 0000000A		    mov     ebx, numbers_per_line
- 0000005C  F7 F3		    div     ebx
- 0000005E  83 FA 00		    cmp     edx, 0
- 00000061  74 02		    je      WriteNewLine
- 00000063  EB AF		    jmp     NextNumber
-
- 00000065			WriteNewLine:
- 00000065  E8 00000000 E	    call    Crlf
- 0000006A  C7 05 00000122 R	    mov     line_count, 0
-	   00000000
- 00000074  EB 9E		    jmp     NextNumber
+				; show number of requested composite numbers
+ 0000000A  50			push    eax                                     ; pass argument of input count to procedure
+ 0000000B  E8 00000005		call    showComposites
 
 				; exit program but wait for user to press any key
- 00000076			ExitProgram:
- 00000076  E8 0000001A		    call    farewell
- 0000007B			main ENDP
+ 00000010  E8 000000B8		call    farewell
+ 00000015			main ENDP
 
- 0000007B			introduction PROC
-				; output title of the program
- 0000007B  BA 00000000 R	    mov     edx, OFFSET program_title
- 00000080  E8 00000000 E	    call    WriteString
- 00000085  E8 00000000 E	    call    Crlf
-				; output program instructions
- 0000008A  BA 00000030 R	    mov     edx, OFFSET instructions
- 0000008F  E8 00000000 E	    call    WriteString
- 00000094  C3			    ret
- 00000095			introduction ENDP
+ 00000015			showComposites PROC
+ 00000015  55			    push    ebp
+ 00000016  8B EC		    mov     ebp, esp
+ 00000018  B9 00000000		    mov     ecx, 0
+ 0000001D			NextNumber:
+ 0000001D  41			    inc     ecx
+ 0000001E  A1 0000011A R	    mov     eax, count
+ 00000023  3B 44 24 08		    cmp     eax, [esp+8]                        ; assign parameter input count to eax register
+ 00000027  0F 8D 00000082	    jge     ExitProc
+
+ 0000002D  51			    push    ecx
+ 0000002E  51			    push    ecx
+ 0000002F  E8 0000004D		    call    isComposite
+ 00000034  59			    pop     ecx                                 ; here we want to restore the ecx counter after proc returns
+ 00000035  3C 01		    cmp     al, 1
+ 00000037  74 02		    je      CompositeFound                      ; write composite output to screen
+ 00000039  EB E2		    jmp     NextNumber                          ; loop next number
+
+				; write found composite number to screen update global counters
+ 0000003B			CompositeFound:
+ 0000003B  FF 05 0000011A R	    inc     count
+ 00000041  FF 05 0000011E R	    inc     line_count
+ 00000047  8B C1		    mov     eax, ecx
+ 00000049  E8 00000000 E	    call    WriteDec
+ 0000004E  BA 00000114 R	    mov     edx, OFFSET spaces
+ 00000053  E8 00000000 E	    call    WriteString
 				    
- 00000095			farewell PROC
- 00000095  E8 00000000 E	    call    CrLf
- 0000009A  E8 00000000 E	    call    CrLf
- 0000009F  BA 0000009D R	    mov     edx, OFFSET terminate
- 000000A4  E8 00000000 E	    call    WriteString
- 000000A9  E8 00000000 E	    call	ReadChar
+				; check how many numbers we have written per line, if 10 start new line
+ 00000058  BA 00000000		    mov     edx, 0
+ 0000005D  A1 0000011E R	    mov     eax, line_count
+ 00000062  BB 0000000A		    mov     ebx, numbers_per_line
+ 00000067  F7 F3		    div     ebx
+ 00000069  83 FA 00		    cmp     edx, 0
+ 0000006C  74 02		    je      WriteNewLine
+ 0000006E  EB AD		    jmp     NextNumber
+
+ 00000070			WriteNewLine:
+ 00000070  E8 00000000 E	    call    Crlf
+ 00000075  C7 05 0000011E R	    mov     line_count, 0
+	   00000000
+ 0000007F  EB 9C		    jmp     NextNumber
+
+				; sub-routine to check if current number is composite
+ 00000081			    isComposite PROC
+ 00000081  55			        push    ebp
+ 00000082  8B EC		        mov     ebp, esp
+ 00000084  B9 00000001		        mov     ecx, 1                              ; default to 1 so first increment starts us at two
+
+ 00000089			    CheckNextNumber:
+ 00000089  41			        inc     ecx                                 ; increment factor counter;
+
+				    ; divide current number by factor
+ 0000008A  BA 00000000		        mov     edx, 0
+ 0000008F  8B 44 24 08		        mov     eax, [esp+8]                        ; set number parameter value for division
+ 00000093  F7 F1		        div     ecx
+
+				    ; check for factor
+ 00000095  83 FA 00		        cmp     edx, 0                              ; check modulus to determine if not prime
+ 00000098  74 02		        je      AndCheckThatQuotientIsNot1          ; this avoids numbers like 2 from returning true
+ 0000009A  EB 05		        jmp     CheckIfDoneSearching                ; here we have a fraction, so jump to check if we should check next number
+				    
+ 0000009C			    AndCheckThatQuotientIsNot1:
+ 0000009C  83 F8 01		        cmp     eax, 1
+ 0000009F  75 08		        jne     Found
+
+				    ; check if we hit the potential max factor
+ 000000A1			    CheckIfDoneSearching:
+ 000000A1  3B C8		        cmp     ecx, eax                            ; check against max factor we could potentially have, max factory cannot be greater (number)/(iterator count)
+ 000000A3  B0 00		        mov     al, 0
+ 000000A5  7D 04		        jge     ExitProc
+
+				    ; check next number
+ 000000A7  EB E0		        jmp     CheckNextNumber
+
+ 000000A9			    Found:
+ 000000A9  B0 01		        mov     al, 1                               ; set return true flag that composite found
+
+ 000000AB			    ExitProc:
+ 000000AB  5D			        pop     ebp
+ 000000AC  C2 0004		        ret     4
+ 000000AF			    isComposite ENDP
+
+ 000000AF			ExitProc:
+ 000000AF  5D			    pop     ebp
+ 000000B0  C2 0004		    ret     4
+ 000000B3			showComposites ENDP
+
+ 000000B3			introduction PROC
+				; output title of the program
+ 000000B3  BA 00000000 R	    mov     edx, OFFSET program_title
+ 000000B8  E8 00000000 E	    call    WriteString
+ 000000BD  E8 00000000 E	    call    Crlf
+
+				; output program instructions
+ 000000C2  BA 00000030 R	    mov     edx, OFFSET instructions
+ 000000C7  E8 00000000 E	    call    WriteString
+ 000000CC  C3			    ret
+ 000000CD			introduction ENDP
+				    
+ 000000CD			farewell PROC
+ 000000CD  E8 00000000 E	    call    CrLf
+ 000000D2  E8 00000000 E	    call    CrLf
+ 000000D7  BA 0000009D R	    mov     edx, OFFSET terminate
+ 000000DC  E8 00000000 E	    call    WriteString
+ 000000E1  E8 00000000 E	    call	ReadChar
 					exit	; exit to operating system
- 000000AE  6A 00	   *	    push   +000000000h
- 000000B0  E8 00000000 E   *	    call   ExitProcess
- 000000B5  C3			    ret
- 000000B6			farewell ENDP
- 000000B6			getUserData PROC
- 000000B6			PromptNumberInput:
- 000000B6  BA 000000D9 R	    mov     edx, OFFSET prompt_count
- 000000BB  E8 00000000 E	    call    WriteString
- 000000C0  E8 00000000 E	    call    ReadInt
- 000000C5  50			    push    eax
- 000000C6  E8 00000006		    call    validateNumberInput
- 000000CB  83 F8 00		    cmp     eax, 0                              ; check valid return flag, if 1 then invalid
- 000000CE  7E E6		    jle     PromptNumberInput
- 000000D0  C3			    ret
- 000000D1			getUserData ENDP
+ 000000E6  6A 00	   *	    push   +000000000h
+ 000000E8  E8 00000000 E   *	    call   ExitProcess
+ 000000ED  C3			    ret
+ 000000EE			farewell ENDP
 
- 000000D1			validateNumberInput PROC
- 000000D1  55			    push    ebp
- 000000D2  8B EC		    mov     ebp, esp
- 000000D4  8B 44 24 08		    mov     eax, [esp+8]
- 000000D8  3D 00000190		    cmp     eax, 400
- 000000DD  7F 0B		    jg      ShowInvalidInputErrorMessage
- 000000DF  83 F8 01		    cmp     eax, 1
- 000000E2  7C 06		    jl      ShowInvalidInputErrorMessage
- 000000E4  8B 44 24 08		    mov     eax, [esp+8]                        ; set eax to original number
- 000000E8  EB 14		    jmp     ExitProc                            ; jump to exit procedure
- 000000EA			ShowInvalidInputErrorMessage:
- 000000EA  BA 000000BF R	    mov     edx, OFFSET invalid_input
- 000000EF  E8 00000000 E    call    WriteString
- 000000F4  E8 00000000 E	    call    Crlf
- 000000F9  B8 00000000		    mov     eax, 0                              ; set eax to zero to indicate invalid number    
- 000000FE			ExitProc:
- 000000FE  5D			    pop     ebp
- 000000FF  C2 0004		    ret     4                                   ; cleanup the stack
- 00000102			validateNumberInput ENDP
+ 000000EE			getUserData PROC
+ 000000EE			PromptNumberInput:
+ 000000EE  BA 000000D9 R	    mov     edx, OFFSET prompt_count
+ 000000F3  E8 00000000 E	    call    WriteString
+ 000000F8  E8 00000000 E	    call    ReadInt
+ 000000FD  50			    push    eax
+ 000000FE  E8 00000006		    call    validate
+ 00000103  83 F8 00		    cmp     eax, 0                              ; check valid return flag, if 1 then invalid
+ 00000106  7E E6		    jle     PromptNumberInput
+ 00000108  C3			    ret
 
- 00000102			isComposite PROC
- 00000102  55			    push    ebp
- 00000103  8B EC		    mov     ebp, esp
- 00000105  B9 00000001		    mov     ecx, 1                              ; default to 1 so first increment starts us at two
+ 00000109			    validate PROC
+ 00000109  55			        push    ebp
+ 0000010A  8B EC		        mov     ebp, esp
+ 0000010C  8B 44 24 08		        mov     eax, [esp+8]
+ 00000110  3D 00000190		        cmp     eax, max_count
+ 00000115  7F 0B		        jg      ShowInvalidInputErrorMessage
+ 00000117  83 F8 01		        cmp     eax, min_count
+ 0000011A  7C 06		        jl      ShowInvalidInputErrorMessage
+ 0000011C  8B 44 24 08		        mov     eax, [esp+8]                        ; set eax to original number
+ 00000120  EB 14		        jmp     ExitProc                            ; jump to exit procedure
+ 00000122			    ShowInvalidInputErrorMessage:
+ 00000122  BA 000000BF R	        mov     edx, OFFSET invalid_input
+ 00000127  E8 00000000 E	        call    WriteString
+ 0000012C  E8 00000000 E	        call    Crlf
+ 00000131  B8 00000000		        mov     eax, 0                              ; set eax to zero to indicate invalid number    
+ 00000136			    ExitProc:
+ 00000136  5D			        pop     ebp
+ 00000137  C2 0004		        ret     4                                   ; cleanup the stack
+ 0000013A			    validate ENDP
+ 0000013A			getUserData ENDP
 
- 0000010A			CheckNextNumber:
- 0000010A  41			    inc     ecx                                 ; increment factor counter;
-
-				; divide current number by factor
- 0000010B  BA 00000000		    mov     edx, 0
- 00000110  8B 44 24 08		    mov     eax, [esp+8]                        ; set number parameter value for division
- 00000114  F7 F1		    div     ecx
-
-				; check for factor
- 00000116  83 FA 00		    cmp     edx, 0                              ; check modulus to determine if not prime
- 00000119  74 02		    je      AndCheckThatQuotientIsNot1          ; this avoids numbers like 2 from returning true
- 0000011B  EB 05		    jmp     CheckIfDoneSearching                ; here we have a fraction, so jump to check if we should check next number
- 0000011D			AndCheckThatQuotientIsNot1:
- 0000011D  83 F8 01		    cmp     eax, 1
- 00000120  75 08		    jne     Found
-
-				; check if we hit the potential max factor
- 00000122			CheckIfDoneSearching:
- 00000122  3B C8		    cmp     ecx, eax                            ; check against max factor we could potentially have, max factory cannot be greater (number)/(iterator count)
- 00000124  B0 00		    mov     al, 0
- 00000126  7D 04		    jge     ExitProc
-
-				; check next number
- 00000128  EB E0		    jmp     CheckNextNumber
-
- 0000012A			Found:
- 0000012A  B0 01		    mov     al, 1                               ; set return true flag that composite found
-
- 0000012C			ExitProc:
- 0000012C  5D			    pop     ebp
- 0000012D  C2 0004		    ret     4
- 00000130			isComposite ENDP
 				END main
-Microsoft (R) Macro Assembler Version 14.11.25508.2	    11/04/17 08:59:30
+Microsoft (R) Macro Assembler Version 14.11.25508.2	    11/04/17 13:43:58
 $COMPOSITE NUMBERS     (haslamth.asm			     Symbols 2 - 1
 
 
@@ -333,8 +350,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000126 Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000130 Para	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000122 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 0000013A Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -441,26 +458,27 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-farewell . . . . . . . . . . . .	P Near	 00000095 _TEXT	Length= 00000021 Public STDCALL
-getUserData  . . . . . . . . . .	P Near	 000000B6 _TEXT	Length= 0000001B Public STDCALL
-  PromptNumberInput  . . . . . .	L Near	 000000B6 _TEXT	
-introduction . . . . . . . . . .	P Near	 0000007B _TEXT	Length= 0000001A Public STDCALL
-isComposite  . . . . . . . . . .	P Near	 00000102 _TEXT	Length= 0000002E Public STDCALL
-  CheckNextNumber  . . . . . . .	L Near	 0000010A _TEXT	
-  AndCheckThatQuotientIsNot1 . .	L Near	 0000011D _TEXT	
-  CheckIfDoneSearching . . . . .	L Near	 00000122 _TEXT	
-  Found  . . . . . . . . . . . .	L Near	 0000012A _TEXT	
-  ExitProc . . . . . . . . . . .	L Near	 0000012C _TEXT	
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000007B Public STDCALL
-  NextNumber . . . . . . . . . .	L Near	 00000014 _TEXT	
-  CompositeFound . . . . . . . .	L Near	 00000030 _TEXT	
-  WriteNewLine . . . . . . . . .	L Near	 00000065 _TEXT	
-  ExitProgram  . . . . . . . . .	L Near	 00000076 _TEXT	
+farewell . . . . . . . . . . . .	P Near	 000000CD _TEXT	Length= 00000021 Public STDCALL
+getUserData  . . . . . . . . . .	P Near	 000000EE _TEXT	Length= 0000004C Public STDCALL
+  PromptNumberInput  . . . . . .	L Near	 000000EE _TEXT	
+introduction . . . . . . . . . .	P Near	 000000B3 _TEXT	Length= 0000001A Public STDCALL
+isComposite  . . . . . . . . . .	P Near	 00000081 _TEXT	Length= 0000002E Public STDCALL
+  CheckNextNumber  . . . . . . .	L Near	 00000089 _TEXT	
+  AndCheckThatQuotientIsNot1 . .	L Near	 0000009C _TEXT	
+  CheckIfDoneSearching . . . . .	L Near	 000000A1 _TEXT	
+  Found  . . . . . . . . . . . .	L Near	 000000A9 _TEXT	
+  ExitProc . . . . . . . . . . .	L Near	 000000AB _TEXT	
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000015 Public STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-validateNumberInput  . . . . . .	P Near	 000000D1 _TEXT	Length= 00000031 Public STDCALL
-  ShowInvalidInputErrorMessage .	L Near	 000000EA _TEXT	
-  ExitProc . . . . . . . . . . .	L Near	 000000FE _TEXT	
+showComposites . . . . . . . . .	P Near	 00000015 _TEXT	Length= 0000009E Public STDCALL
+  NextNumber . . . . . . . . . .	L Near	 0000001D _TEXT	
+  CompositeFound . . . . . . . .	L Near	 0000003B _TEXT	
+  WriteNewLine . . . . . . . . .	L Near	 00000070 _TEXT	
+  ExitProc . . . . . . . . . . .	L Near	 000000AF _TEXT	
+validate . . . . . . . . . . . .	P Near	 00000109 _TEXT	Length= 00000031 Public STDCALL
+  ShowInvalidInputErrorMessage .	L Near	 00000122 _TEXT	
+  ExitProc . . . . . . . . . . .	L Near	 00000136 _TEXT	
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 
@@ -680,13 +698,12 @@ WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
-count  . . . . . . . . . . . . .	DWord	 0000011E _DATA	
+count  . . . . . . . . . . . . .	DWord	 0000011A _DATA	
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
 found_text . . . . . . . . . . .	Byte	 00000110 _DATA	
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
-input_count  . . . . . . . . . .	DWord	 0000011A _DATA	
 instructions . . . . . . . . . .	Byte	 00000030 _DATA	
 invalid_input  . . . . . . . . .	Byte	 000000BF _DATA	
 lightBlue  . . . . . . . . . . .	Number	 00000009h   
@@ -695,8 +712,10 @@ lightGray  . . . . . . . . . . .	Number	 00000007h
 lightGreen . . . . . . . . . . .	Number	 0000000Ah   
 lightMagenta . . . . . . . . . .	Number	 0000000Dh   
 lightRed . . . . . . . . . . . .	Number	 0000000Ch   
-line_count . . . . . . . . . . .	DWord	 00000122 _DATA	
+line_count . . . . . . . . . . .	DWord	 0000011E _DATA	
 magenta  . . . . . . . . . . . .	Number	 00000005h   
+max_count  . . . . . . . . . . .	Text   	 400
+min_count  . . . . . . . . . . .	Text   	 1
 numbers_per_line . . . . . . . .	Text   	 10
 program_title  . . . . . . . . .	Byte	 00000000 _DATA	
 prompt_count . . . . . . . . . .	Byte	 000000D9 _DATA	
